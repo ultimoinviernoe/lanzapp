@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Bodega Lánzate</title>
+    <style>
+        body { background-color: #FFA64D; font-family: 'Arial', sans-serif; margin: 0; padding: 0; text-align: center; }
+        h1 { color: #FFFFFF; font-weight: bold; font-size: 2em; margin-top: 20px; }
+        .tabs { display: flex; justify-content: center; margin-top: 20px; }
+        .tab { padding: 10px 20px; margin: 0 5px; background-color: #D3D3D3; border-radius: 8px; cursor: pointer; font-weight: bold; }
+        .tab.active { background-color: #FFFFFF; border: 2px solid #000; }
+        .content { display: none; margin-top: 20px; text-align: left; width: 80%; margin-left: auto; margin-right: auto; }
+        .content.active { display: block; }
+        .input-group { margin: 10px 0; }
+        label { font-weight: bold; }
+        input { width: 100%; padding: 8px; margin-top: 5px; border-radius: 6px; border: 1px solid #ccc; }
+        button { margin-top: 15px; padding: 10px 20px; border-radius: 8px; border: none; background-color: #D3D3D3; font-weight: bold; cursor: pointer; }
+        #output { margin-top: 20px; font-weight: bold; color: white; }
+        .dropdown { margin-top: 20px; }
+        select { padding: 8px; border-radius: 6px; border: 1px solid #ccc; width: 100%; }
+    </style>
+</head>
+<body>
+    <h1>Bodega Lánzate</h1>
+
+    <!-- Pestañas -->
+    <div class="tabs">
+        <div id="tab-codigo" class="tab active" onclick="showTab('codigo')">Código</div>
+        <div id="tab-habitual" class="tab" onclick="showTab('habitual')">Habitual</div>
+        <div id="tab-rapel" class="tab" onclick="showTab('rapel')">Rapel</div>
+    </div>
+
+    <!-- Contenido pestaña Código -->
+    <div id="codigo" class="content active">
+        <div class="input-group">
+            <label for="codigoInput">Código:</label>
+            <input type="text" id="codigoInput" placeholder="Escribe el código...">
+        </div>
+        <button onclick="sendCodigo()">Enviar</button>
+    </div>
+
+    <!-- Contenido pestaña Habitual -->
+    <div id="habitual" class="content">
+        <div class="input-group">
+            <label for="general">General:</label>
+            <input type="text" id="general" placeholder="Escribe el código...">
+        </div>
+        <button onclick="sendGeneral()">Enviar</button>
+        <hr>
+        <div class="input-group">
+            <label for="arnes">Arnés:</label>
+            <input type="text" id="arnes" placeholder="Código del arnés...">
+        </div>
+        <div class="input-group">
+            <label for="casco">Casco:</label>
+            <input type="text" id="casco" placeholder="Código del casco...">
+        </div>
+        <div class="input-group">
+            <label for="linea">Línea de Vida:</label>
+            <input type="text" id="linea" placeholder="Código de la línea de vida...">
+        </div>
+        <button onclick="sendMultiple()">Enviar Kit</button>
+    </div>
+
+    <!-- Contenido pestaña Rapel -->
+    <div id="rapel" class="content">
+        <div class="input-group">
+            <label for="rapelArnes">Arnés:</label>
+            <input type="text" id="rapelArnes">
+        </div>
+        <div class="input-group">
+            <label for="rapelCasco">Casco:</label>
+            <input type="text" id="rapelCasco">
+        </div>
+        <div class="input-group">
+            <label for="rapelLinea">Línea de Vida:</label>
+            <input type="text" id="rapelLinea">
+        </div>
+        <div class="input-group">
+            <label for="rapelVulkan">Vulkan:</label>
+            <input type="text" id="rapelVulkan">
+        </div>
+        <div class="input-group">
+            <label for="rapelMosqueton">Mosquetón:</label>
+            <input type="text" id="rapelMosqueton">
+        </div>
+        <div class="input-group">
+            <label for="rapelOcho">8:</label>
+            <input type="text" id="rapelOcho">
+        </div>
+        <button onclick="sendRapel()">Enviar Kit Rapel</button>
+        
+        <!-- Menú desplegable -->
+        <div class="dropdown">
+            <label for="retos">Otros retos:</label>
+            <select id="retos" onchange="showProximamente()">
+                <option value="">Selecciona...</option>
+                <option value="reto1">Reto 1</option>
+                <option value="reto2">Reto 2</option>
+                <option value="reto3">Reto 3</option>
+            </select>
+        </div>
+    </div>
+
+    <div id="output"></div>
+
+    <script>
+        // REEMPLAZA ESTA URL CON TU APPS SCRIPT REAL
+        const scriptUrl = "https://script.google.com/macros/s/AKfycby11Nxu7mloDOsQZHqbaxbfYNXQVbS8vZwJuxSO4b23i9zy1SOXrEjaiVu7421IXuqbFg/exec";
+
+        function showTab(tabId) {
+            // Quitar active de todas las pestañas y contenidos
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.content').forEach(c => c.classList.remove('active'));
+            
+            // Activar la pestaña y el contenido correspondiente
+            document.getElementById("tab-" + tabId).classList.add('active');
+            document.getElementById(tabId).classList.add('active');
+            
+            // Limpiar mensajes
+            document.getElementById("output").innerHTML = "";
+        }
+
+        async function sendData(id) {
+            if (!id) return "Código vacío";
+            try {
+                const res = await fetch(`${scriptUrl}?id=${encodeURIComponent(id)}`);
+                const msg = await res.text();
+                return msg;
+            } catch (error) {
+                return "Error: " + error;
+            }
+        }
+
+        async function sendCodigo() {
+            const id = document.getElementById("codigoInput").value.trim();
+            if (id) {
+                document.getElementById("output").innerHTML = "Procesando...";
+                const result = await sendData(id);
+                document.getElementById("output").innerHTML = result;
+            }
+        }
+
+        async function sendGeneral() {
+            const id = document.getElementById("general").value.trim();
+            if (id) {
+                document.getElementById("output").innerHTML = "Procesando...";
+                const result = await sendData(id);
+                document.getElementById("output").innerHTML = result;
+            }
+        }
+
+        async function sendMultiple() {
+            const ids = [
+                document.getElementById("arnes").value.trim(),
+                document.getElementById("casco").value.trim(),
+                document.getElementById("linea").value.trim()
+            ].filter(id => id !== "");
+
+            if (ids.length > 0) {
+                document.getElementById("output").innerHTML = "Procesando...";
+                let results = [];
+                for (const id of ids) {
+                    const msg = await sendData(id);
+                    results.push(msg);
+                }
+                document.getElementById("output").innerHTML = results.join("<br>");
+            }
+        }
+
+        async function sendRapel() {
+            const ids = [
+                document.getElementById("rapelArnes").value.trim(),
+                document.getElementById("rapelCasco").value.trim(),
+                document.getElementById("rapelLinea").value.trim(),
+                document.getElementById("rapelVulkan").value.trim(),
+                document.getElementById("rapelMosqueton").value.trim(),
+                document.getElementById("rapelOcho").value.trim()
+            ].filter(id => id !== "");
+
+            if (ids.length > 0) {
+                document.getElementById("output").innerHTML = "Procesando...";
+                let results = [];
+                for (const id of ids) {
+                    const msg = await sendData(id);
+                    results.push(msg);
+                }
+                document.getElementById("output").innerHTML = results.join("<br>");
+            }
+        }
+
+        function showProximamente() {
+            const select = document.getElementById("retos");
+            const value = select.value;
+            if (value) {
+                document.getElementById("output").innerHTML = "Cargando " + value + "...";
+                select.value = ""; // Reset dropdown
+            }
+        }
+    </script>
+</body>
+</html>
