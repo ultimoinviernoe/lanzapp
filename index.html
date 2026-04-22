@@ -1,123 +1,191 @@
-<script>
-    // URL de tu Web App de Google Apps Script
-    const scriptUrl = "https://script.google.com/macros/s/AKfycbxpAhG9zorcMjsklvj-jMihukU7x1ccjI-iqPScwY9XQ-oYx5Go9Cs2XaPHwuWmQE01MQ/exec";
-
-    function showTab(tabId) {
-        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-        document.querySelectorAll('.content').forEach(c => c.classList.remove('active'));
-        document.getElementById("tab-" + tabId).classList.add('active');
-        document.getElementById(tabId).classList.add('active');
-        document.getElementById("output").innerHTML = "";
-    }
-
-    // FUNCIÓN CORE: Ahora maneja JSON y errores de red
-    async function sendData(id) {
-        if (!id) return { status: "error", message: "Código vacío" };
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bodega Lánzate</title>
+    <style>
+        body { background-color: #FFA64D; font-family: 'Arial', sans-serif; margin: 0; padding: 0; text-align: center; }
+        h1 { color: #FFFFFF; font-weight: bold; font-size: 2em; margin-top: 20px; }
         
-        // El parámetro redirect: "follow" es clave para Apps Script
-        const urlFinal = `${scriptUrl}?id=${encodeURIComponent(id)}`;
+        .tabs { display: flex; justify-content: center; margin-top: 20px; flex-wrap: wrap; }
+        .tab { padding: 10px 20px; margin: 5px; background-color: #D3D3D3; border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.3s; }
+        .tab.active { background-color: #FFFFFF; border: 2px solid #000; }
         
-        try {
-            const response = await fetch(urlFinal, {
-                method: "GET",
-                mode: "cors" // Crucial para GitHub Pages
-            });
-
-            if (!response.ok) throw new Error("Error en servidor");
-
-            const data = await response.json();
-            return data;
-        } catch (error) {
-            console.error(error);
-            return { status: "error", message: "Error de conexión. Revisa el internet." };
-        }
-    }
-
-    // Helper para mostrar mensajes con color
-    function displayResult(result) {
-        const output = document.getElementById("output");
-        let color = "#FFFFFF"; // Blanco por defecto
-
-        if (result.status === "success") {
-            color = result.accion === "salida" ? "#FFD700" : "#90EE90"; // Amarillo salida, Verde regreso
-        } else if (result.status === "not_found") {
-            color = "#FF6347"; // Tomate/Rojo
-        }
-
-        const nuevoMensaje = `<div style="color: ${color}; margin-bottom: 5px;">• ${result.message}</div>`;
-        output.innerHTML = nuevoMensaje + output.innerHTML; // Los nuevos arriba
-    }
-
-    // ENVIAR UN SOLO CÓDIGO
-    async function sendCodigo() {
-        const input = document.getElementById("codigoInput");
-        const id = input.value.trim();
-        if (!id) return;
-
-        document.getElementById("output").innerHTML = "⌛ Procesando...";
-        const result = await sendData(id);
+        .content { display: none; margin-top: 20px; text-align: left; width: 90%; max-width: 500px; margin-left: auto; margin-right: auto; background: rgba(255,255,255,0.1); padding: 20px; border-radius: 15px; }
+        .content.active { display: block; }
         
-        document.getElementById("output").innerHTML = ""; // Limpiar el "Procesando"
-        displayResult(result);
-        input.value = ""; // Limpiar campo para el siguiente escaneo
-        input.focus();
-    }
-
-    // ENVIAR GENERAL
-    async function sendGeneral() {
-        const input = document.getElementById("general");
-        const id = input.value.trim();
-        if (!id) return;
-
-        document.getElementById("output").innerHTML = "⌛ Procesando...";
-        const result = await sendData(id);
+        .input-group { margin: 15px 0; }
+        label { font-weight: bold; color: white; display: block; margin-bottom: 5px; }
+        input { width: 100%; padding: 12px; border-radius: 8px; border: none; box-sizing: border-box; font-size: 16px; }
         
-        document.getElementById("output").innerHTML = "";
-        displayResult(result);
-        input.value = "";
-    }
+        button { width: 100%; margin-top: 15px; padding: 12px; border-radius: 8px; border: none; background-color: #333; color: white; font-weight: bold; cursor: pointer; font-size: 16px; }
+        button:hover { background-color: #555; }
+        
+        #output { margin-top: 20px; font-weight: bold; width: 90%; max-width: 500px; margin-left: auto; margin-right: auto; text-align: left; }
+        .log-entry { background: rgba(0,0,0,0.2); padding: 10px; border-radius: 5px; margin-bottom: 5px; animation: fadeIn 0.3s ease; }
+        
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        hr { border: 0; border-top: 1px solid rgba(255,255,255,0.3); margin: 20px 0; }
+        select { width: 100%; padding: 10px; border-radius: 8px; }
+    </style>
+</head>
+<body>
 
-    // ENVIAR KITS (Lógica secuencial para evitar colisiones)
-    async function processKit(containerId) {
-        const inputs = document.querySelectorAll(`#${containerId} input`);
-        const ids = Array.from(inputs).map(i => i.value.trim()).filter(id => id !== "");
+    <h1>Bodega Lánzate</h1>
 
-        if (ids.length === 0) return;
+    <div class="tabs">
+        <div id="tab-codigo" class="tab active" onclick="showTab('codigo')">Código</div>
+        <div id="tab-habitual" class="tab" onclick="showTab('habitual')">Habitual</div>
+        <div id="tab-rapel" class="tab" onclick="showTab('rapel')">Rapel</div>
+    </div>
 
-        document.getElementById("output").innerHTML = "⌛ Procesando Kit...";
-        let resultsFound = [];
+    <div id="codigo" class="content active">
+        <div class="input-group">
+            <label for="codigoInput">Escanear Código:</label>
+            <input type="text" id="codigoInput" placeholder="Escribe o escanea..." autofocus>
+        </div>
+        <button onclick="sendCodigo()">Enviar</button>
+    </div>
 
-        // Los procesamos uno por uno para que el LockService de Apps Script trabaje bien
-        for (const id of ids) {
-            const res = await sendData(id);
-            displayResult(res);
+    <div id="habitual" class="content">
+        <div class="input-group">
+            <label for="general">General (Escaneo rápido):</label>
+            <input type="text" id="general" placeholder="Código individual...">
+        </div>
+        <button onclick="sendGeneral()">Enviar Individual</button>
+        <hr>
+        <div class="input-group">
+            <label>Kit Básico:</label>
+            <input type="text" id="arnes" placeholder="Arnés" style="margin-bottom:5px">
+            <input type="text" id="casco" placeholder="Casco" style="margin-bottom:5px">
+            <input type="text" id="linea" placeholder="Línea de Vida">
+        </div>
+        <button onclick="sendMultiple()">Enviar Kit Completo</button>
+    </div>
+
+    <div id="rapel" class="content">
+        <div class="input-group">
+            <label>Kit Rapel:</label>
+            <input type="text" id="rapelArnes" placeholder="Arnés" style="margin-bottom:5px">
+            <input type="text" id="rapelCasco" placeholder="Casco" style="margin-bottom:5px">
+            <input type="text" id="rapelLinea" placeholder="Línea de Vida" style="margin-bottom:5px">
+            <input type="text" id="rapelVulkan" placeholder="Vulkan" style="margin-bottom:5px">
+            <input type="text" id="rapelMosqueton" placeholder="Mosquetón" style="margin-bottom:5px">
+            <input type="text" id="rapelOcho" placeholder="Ocho">
+        </div>
+        <button onclick="sendRapel()">Enviar Kit Rapel</button>
+        <div class="input-group">
+            <label for="retos">Otros retos:</label>
+            <select id="retos" onchange="showProximamente()">
+                <option value="">Selecciona...</option>
+                <option value="reto1">Reto 1</option>
+                <option value="reto2">Reto 2</option>
+            </select>
+        </div>
+    </div>
+
+    <div id="output"></div>
+
+    <script>
+        // URL de tu Web App
+        const scriptUrl = "https://script.google.com/macros/s/AKfycby11Nxu7mloDOsQZHqbaxbfYNXQVbS8vZwJuxSO4b23i9zy1SOXrEjaiVu7421IXuqbFg/exec";
+
+        function showTab(tabId) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.content').forEach(c => c.classList.remove('active'));
+            document.getElementById("tab-" + tabId).classList.add('active');
+            document.getElementById(tabId).classList.add('active');
+            // Foco automático al input
+            const activeInput = document.querySelector(`#${tabId} input`);
+            if (activeInput) activeInput.focus();
         }
 
-        // Limpiar todos los inputs del contenedor tras terminar
-        inputs.forEach(i => i.value = "");
-        // Quitar el mensaje de "Procesando" si quedó ahí
-        if(document.getElementById("output").innerHTML.includes("⌛")) {
-            document.getElementById("output").innerHTML = "✅ Kit procesado.";
+        async function sendData(id) {
+            if (!id) return { status: "error", message: "Campo vacío" };
+            const urlFinal = `${scriptUrl}?id=${encodeURIComponent(id)}`;
+            
+            try {
+                // Importante: GitHub Pages necesita mode: 'cors'
+                const response = await fetch(urlFinal, { method: "GET" });
+                const data = await response.json();
+                return data;
+            } catch (error) {
+                console.error("Error detallado:", error);
+                return { status: "error", message: "Error de red/CORS. Verifica la publicación del script." };
+            }
         }
-    }
 
-    function sendMultiple() { processKit('habitual'); }
-    function sendRapel() { processKit('rapel'); }
+        function displayResult(result) {
+            const output = document.getElementById("output");
+            let color = "#FFFFFF"; 
 
-    function showProximamente() {
-        const select = document.getElementById("retos");
-        if (select.value) {
-            document.getElementById("output").innerHTML = `<span style="color: #eee">Próximamente: ${select.value} 🚀</span>`;
-            select.value = "";
+            if (result.status === "success") {
+                color = (result.accion === "salida") ? "#FFF300" : "#00FF87"; 
+            } else {
+                color = "#FF4B4B"; 
+            }
+
+            const div = document.createElement("div");
+            div.className = "log-entry";
+            div.style.color = color;
+            div.innerHTML = `<strong>${result.status.toUpperCase()}:</strong> ${result.message}`;
+            output.insertBefore(div, output.firstChild);
         }
-    }
 
-    // Permitir enviar con la tecla "Enter"
-    document.addEventListener('keypress', function (e) {
-        if (e.key === 'Enter') {
-            const activeTab = document.querySelector('.content.active').id;
-            if (activeTab === 'codigo') sendCodigo();
-            if (activeTab === 'habitual' && document.activeElement.id === 'general') sendGeneral();
+        async function sendCodigo() {
+            const input = document.getElementById("codigoInput");
+            const id = input.value.trim();
+            if (!id) return;
+
+            input.disabled = true; // Evitar doble envío
+            const result = await sendData(id);
+            displayResult(result);
+            input.disabled = false;
+            input.value = "";
+            input.focus();
         }
-    });
-</script>
+
+        async function sendGeneral() {
+            const input = document.getElementById("general");
+            const id = input.value.trim();
+            if (!id) return;
+            const result = await sendData(id);
+            displayResult(result);
+            input.value = "";
+        }
+
+        async function processKit(containerId) {
+            const container = document.getElementById(containerId);
+            const inputs = container.querySelectorAll("input");
+            const ids = Array.from(inputs).map(i => i.value.trim()).filter(id => id !== "");
+
+            if (ids.length === 0) return;
+
+            for (const id of ids) {
+                const res = await sendData(id);
+                displayResult(res);
+            }
+            inputs.forEach(i => i.value = "");
+        }
+
+        function sendMultiple() { processKit('habitual'); }
+        function sendRapel() { processKit('rapel'); }
+
+        function showProximamente() {
+            const val = document.getElementById("retos").value;
+            if(val) alert("Próximamente disponible: " + val);
+        }
+
+        // Detectar Enter en cualquier input
+        document.addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                const activeTab = document.querySelector('.content.active').id;
+                if (activeTab === 'codigo') sendCodigo();
+                if (activeTab === 'habitual' && document.activeElement.id === 'general') sendGeneral();
+            }
+        });
+    </script>
+</body>
+</html>
