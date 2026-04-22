@@ -1,202 +1,123 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <title>Bodega Lánzate</title>
-    <style>
-        body { background-color: #FFA64D; font-family: 'Arial', sans-serif; margin: 0; padding: 0; text-align: center; }
-        h1 { color: #FFFFFF; font-weight: bold; font-size: 2em; margin-top: 20px; }
-        .tabs { display: flex; justify-content: center; margin-top: 20px; }
-        .tab { padding: 10px 20px; margin: 0 5px; background-color: #D3D3D3; border-radius: 8px; cursor: pointer; font-weight: bold; }
-        .tab.active { background-color: #FFFFFF; border: 2px solid #000; }
-        .content { display: none; margin-top: 20px; text-align: left; width: 80%; margin-left: auto; margin-right: auto; }
-        .content.active { display: block; }
-        .input-group { margin: 10px 0; }
-        label { font-weight: bold; }
-        input { width: 100%; padding: 8px; margin-top: 5px; border-radius: 6px; border: 1px solid #ccc; }
-        button { margin-top: 15px; padding: 10px 20px; border-radius: 8px; border: none; background-color: #D3D3D3; font-weight: bold; cursor: pointer; }
-        #output { margin-top: 20px; font-weight: bold; color: white; }
-        .dropdown { margin-top: 20px; }
-        select { padding: 8px; border-radius: 6px; border: 1px solid #ccc; width: 100%; }
-    </style>
-</head>
-<body>
-    <h1>Bodega Lánzate</h1>
+<script>
+    // URL de tu Web App de Google Apps Script
+    const scriptUrl = "https://script.google.com/macros/s/AKfycbxpAhG9zorcMjsklvj-jMihukU7x1ccjI-iqPScwY9XQ-oYx5Go9Cs2XaPHwuWmQE01MQ/exec";
 
-    <!-- Pestañas -->
-    <div class="tabs">
-        <div id="tab-codigo" class="tab active" onclick="showTab('codigo')">Código</div>
-        <div id="tab-habitual" class="tab" onclick="showTab('habitual')">Habitual</div>
-        <div id="tab-rapel" class="tab" onclick="showTab('rapel')">Rapel</div>
-    </div>
+    function showTab(tabId) {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.content').forEach(c => c.classList.remove('active'));
+        document.getElementById("tab-" + tabId).classList.add('active');
+        document.getElementById(tabId).classList.add('active');
+        document.getElementById("output").innerHTML = "";
+    }
 
-    <!-- Contenido pestaña Código -->
-    <div id="codigo" class="content active">
-        <div class="input-group">
-            <label for="codigoInput">Código:</label>
-            <input type="text" id="codigoInput" placeholder="Escribe el código...">
-        </div>
-        <button onclick="sendCodigo()">Enviar</button>
-    </div>
-
-    <!-- Contenido pestaña Habitual -->
-    <div id="habitual" class="content">
-        <div class="input-group">
-            <label for="general">General:</label>
-            <input type="text" id="general" placeholder="Escribe el código...">
-        </div>
-        <button onclick="sendGeneral()">Enviar</button>
-        <hr>
-        <div class="input-group">
-            <label for="arnes">Arnés:</label>
-            <input type="text" id="arnes" placeholder="Código del arnés...">
-        </div>
-        <div class="input-group">
-            <label for="casco">Casco:</label>
-            <input type="text" id="casco" placeholder="Código del casco...">
-        </div>
-        <div class="input-group">
-            <label for="linea">Línea de Vida:</label>
-            <input type="text" id="linea" placeholder="Código de la línea de vida...">
-        </div>
-        <button onclick="sendMultiple()">Enviar Kit</button>
-    </div>
-
-    <!-- Contenido pestaña Rapel -->
-    <div id="rapel" class="content">
-        <div class="input-group">
-            <label for="rapelArnes">Arnés:</label>
-            <input type="text" id="rapelArnes">
-        </div>
-        <div class="input-group">
-            <label for="rapelCasco">Casco:</label>
-            <input type="text" id="rapelCasco">
-        </div>
-        <div class="input-group">
-            <label for="rapelLinea">Línea de Vida:</label>
-            <input type="text" id="rapelLinea">
-        </div>
-        <div class="input-group">
-            <label for="rapelVulkan">Vulkan:</label>
-            <input type="text" id="rapelVulkan">
-        </div>
-        <div class="input-group">
-            <label for="rapelMosqueton">Mosquetón:</label>
-            <input type="text" id="rapelMosqueton">
-        </div>
-        <div class="input-group">
-            <label for="rapelOcho">8:</label>
-            <input type="text" id="rapelOcho">
-        </div>
-        <button onclick="sendRapel()">Enviar Kit Rapel</button>
+    // FUNCIÓN CORE: Ahora maneja JSON y errores de red
+    async function sendData(id) {
+        if (!id) return { status: "error", message: "Código vacío" };
         
-        <!-- Menú desplegable -->
-        <div class="dropdown">
-            <label for="retos">Otros retos:</label>
-            <select id="retos" onchange="showProximamente()">
-                <option value="">Selecciona...</option>
-                <option value="reto1">Reto 1</option>
-                <option value="reto2">Reto 2</option>
-                <option value="reto3">Reto 3</option>
-            </select>
-        </div>
-    </div>
+        // El parámetro redirect: "follow" es clave para Apps Script
+        const urlFinal = `${scriptUrl}?id=${encodeURIComponent(id)}`;
+        
+        try {
+            const response = await fetch(urlFinal, {
+                method: "GET",
+                mode: "cors" // Crucial para GitHub Pages
+            });
 
-    <div id="output"></div>
+            if (!response.ok) throw new Error("Error en servidor");
 
-    <script>
-        // REEMPLAZA ESTA URL CON TU APPS SCRIPT REAL
-        const scriptUrl = "https://script.google.com/macros/s/AKfycby11Nxu7mloDOsQZHqbaxbfYNXQVbS8vZwJuxSO4b23i9zy1SOXrEjaiVu7421IXuqbFg/exec";
+            const data = await response.json();
+            return data;
+        } catch (error) {
+            console.error(error);
+            return { status: "error", message: "Error de conexión. Revisa el internet." };
+        }
+    }
 
-        function showTab(tabId) {
-            // Quitar active de todas las pestañas y contenidos
-            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('.content').forEach(c => c.classList.remove('active'));
-            
-            // Activar la pestaña y el contenido correspondiente
-            document.getElementById("tab-" + tabId).classList.add('active');
-            document.getElementById(tabId).classList.add('active');
-            
-            // Limpiar mensajes
-            document.getElementById("output").innerHTML = "";
+    // Helper para mostrar mensajes con color
+    function displayResult(result) {
+        const output = document.getElementById("output");
+        let color = "#FFFFFF"; // Blanco por defecto
+
+        if (result.status === "success") {
+            color = result.accion === "salida" ? "#FFD700" : "#90EE90"; // Amarillo salida, Verde regreso
+        } else if (result.status === "not_found") {
+            color = "#FF6347"; // Tomate/Rojo
         }
 
-        async function sendData(id) {
-            if (!id) return "Código vacío";
-            try {
-                const res = await fetch(`${scriptUrl}?id=${encodeURIComponent(id)}`);
-                const msg = await res.text();
-                return msg;
-            } catch (error) {
-                return "Error: " + error;
-            }
+        const nuevoMensaje = `<div style="color: ${color}; margin-bottom: 5px;">• ${result.message}</div>`;
+        output.innerHTML = nuevoMensaje + output.innerHTML; // Los nuevos arriba
+    }
+
+    // ENVIAR UN SOLO CÓDIGO
+    async function sendCodigo() {
+        const input = document.getElementById("codigoInput");
+        const id = input.value.trim();
+        if (!id) return;
+
+        document.getElementById("output").innerHTML = "⌛ Procesando...";
+        const result = await sendData(id);
+        
+        document.getElementById("output").innerHTML = ""; // Limpiar el "Procesando"
+        displayResult(result);
+        input.value = ""; // Limpiar campo para el siguiente escaneo
+        input.focus();
+    }
+
+    // ENVIAR GENERAL
+    async function sendGeneral() {
+        const input = document.getElementById("general");
+        const id = input.value.trim();
+        if (!id) return;
+
+        document.getElementById("output").innerHTML = "⌛ Procesando...";
+        const result = await sendData(id);
+        
+        document.getElementById("output").innerHTML = "";
+        displayResult(result);
+        input.value = "";
+    }
+
+    // ENVIAR KITS (Lógica secuencial para evitar colisiones)
+    async function processKit(containerId) {
+        const inputs = document.querySelectorAll(`#${containerId} input`);
+        const ids = Array.from(inputs).map(i => i.value.trim()).filter(id => id !== "");
+
+        if (ids.length === 0) return;
+
+        document.getElementById("output").innerHTML = "⌛ Procesando Kit...";
+        let resultsFound = [];
+
+        // Los procesamos uno por uno para que el LockService de Apps Script trabaje bien
+        for (const id of ids) {
+            const res = await sendData(id);
+            displayResult(res);
         }
 
-        async function sendCodigo() {
-            const id = document.getElementById("codigoInput").value.trim();
-            if (id) {
-                document.getElementById("output").innerHTML = "Procesando...";
-                const result = await sendData(id);
-                document.getElementById("output").innerHTML = result;
-            }
+        // Limpiar todos los inputs del contenedor tras terminar
+        inputs.forEach(i => i.value = "");
+        // Quitar el mensaje de "Procesando" si quedó ahí
+        if(document.getElementById("output").innerHTML.includes("⌛")) {
+            document.getElementById("output").innerHTML = "✅ Kit procesado.";
         }
+    }
 
-        async function sendGeneral() {
-            const id = document.getElementById("general").value.trim();
-            if (id) {
-                document.getElementById("output").innerHTML = "Procesando...";
-                const result = await sendData(id);
-                document.getElementById("output").innerHTML = result;
-            }
+    function sendMultiple() { processKit('habitual'); }
+    function sendRapel() { processKit('rapel'); }
+
+    function showProximamente() {
+        const select = document.getElementById("retos");
+        if (select.value) {
+            document.getElementById("output").innerHTML = `<span style="color: #eee">Próximamente: ${select.value} 🚀</span>`;
+            select.value = "";
         }
+    }
 
-        async function sendMultiple() {
-            const ids = [
-                document.getElementById("arnes").value.trim(),
-                document.getElementById("casco").value.trim(),
-                document.getElementById("linea").value.trim()
-            ].filter(id => id !== "");
-
-            if (ids.length > 0) {
-                document.getElementById("output").innerHTML = "Procesando...";
-                let results = [];
-                for (const id of ids) {
-                    const msg = await sendData(id);
-                    results.push(msg);
-                }
-                document.getElementById("output").innerHTML = results.join("<br>");
-            }
+    // Permitir enviar con la tecla "Enter"
+    document.addEventListener('keypress', function (e) {
+        if (e.key === 'Enter') {
+            const activeTab = document.querySelector('.content.active').id;
+            if (activeTab === 'codigo') sendCodigo();
+            if (activeTab === 'habitual' && document.activeElement.id === 'general') sendGeneral();
         }
-
-        async function sendRapel() {
-            const ids = [
-                document.getElementById("rapelArnes").value.trim(),
-                document.getElementById("rapelCasco").value.trim(),
-                document.getElementById("rapelLinea").value.trim(),
-                document.getElementById("rapelVulkan").value.trim(),
-                document.getElementById("rapelMosqueton").value.trim(),
-                document.getElementById("rapelOcho").value.trim()
-            ].filter(id => id !== "");
-
-            if (ids.length > 0) {
-                document.getElementById("output").innerHTML = "Procesando...";
-                let results = [];
-                for (const id of ids) {
-                    const msg = await sendData(id);
-                    results.push(msg);
-                }
-                document.getElementById("output").innerHTML = results.join("<br>");
-            }
-        }
-
-        function showProximamente() {
-            const select = document.getElementById("retos");
-            const value = select.value;
-            if (value) {
-                document.getElementById("output").innerHTML = "Cargando " + value + "...";
-                select.value = ""; // Reset dropdown
-            }
-        }
-    </script>
-</body>
-</html>
+    });
+</script>
